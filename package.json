@@ -1,0 +1,19 @@
+{
+  "name": "node-tibia",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "death": "^1.1.0",
+    "kbm-robot": "0.0.4",
+    "lame": "^1.2.4",
+    "robotjs": "^0.4.5",
+    "speaker": "^0.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
