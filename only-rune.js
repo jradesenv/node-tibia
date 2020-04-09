@@ -9,7 +9,7 @@ newRobot.startJar("7");
 var ON_DEATH = require('death'); //this is intentionally ugly
 
 ON_DEATH(function (signal, err) {
-    console.log("stop!");
+    console.log(new Date().toLocaleString() + " stop!");
     newRobot.stopJar();
 });
 
@@ -18,11 +18,11 @@ var playerOnScreenSoundFile = path.join("sounds", "playerOnTheScreen.mp3");
 var emptyManaColor = "26231f";
 var fullManaColor = "7260ff";
 var blankRuneColor = "9e978e";
-var emptyBattleColor = "201e1a";
+var emptyBattleColor = "1a1b1b";
 
 var battlePos = {
-    x: 1742,
-    y: 747
+    x: 1738,
+    y: 124
 };
 
 var posFullMana = {
@@ -70,131 +70,71 @@ var playerPosition = {
 }
 
 setTimeout(function () {
-    //start();
-
-    getAutomaticPositions(startOnlyMakeSD);
+    if (onlyLearnPositions) {
+        setInterval(function () {
+            learnPositions();
+        }, 3000);
+    } else {
+        getAutomaticPositions(start);
+    }
 }, 5000);
 
 var onlyLearnPositions = false;
 var wasAlone = false;
-var runeOnlyAlone = true;
-var shouldPlaySoundPlayerOnScreen = true;
+var runeOnlyAlone = false;
+var shouldPlaySoundPlayerOnScreen = false;
+var shouldLogoutWhenNotAlone = true;
 
-var maxRunes = 60;
-function startOnlyMakeSD() {
-    currentRunes = 0;
-    setInterval(function () {
-        if (onlyLearnPositions) {
-            learnPositions();
-        } else {
-
-            if (isAlone() || !runeOnlyAlone) {
-                if (!wasAlone) {
-                    wasAlone = true;
-                    console.log("[" + new Date().toLocaleTimeString() + "] playing for you again!")
-                }
-
-                if (!isDoingAnything()) {
-                    if (isManaFull()) {
-                        makeRune();
-                    }
-                    else {
-                        if (fishingCount > 5) {
-                            if (eatFoodCount > 2) {
-                                doTheHalemShake();
-                                eatFoodCount = 0;
-                            } else {
-                                eatFood();
-                            }
-
-                            fishingCount = 0;
-                        } else {
-                            doFish();
-                        }
-                    }
-                }
-
-            } else {
-                if (wasAlone) {
-                    wasAlone = false;
-                    console.log("[" + new Date().toLocaleTimeString() + "] not alone!")
-                }
-                playPlayerOnScreenSound();
-            }
-        }
-
-    }, 1000);
-}
-
+var maxRunes = 220;
+var countUntilExevoPan = 0;
+var maxCountUntilExevoPan = 3;
+var alternateExevoPan = true;
 function start() {
+    currentRunes = 0;
+
+    if (shouldLogoutWhenNotAlone) {
+        console.log(new Date().toLocaleString() + " will logout when not alone");
+        setInterval(function () {
+            if (!isAlone()) {
+                doLogout();
+            }
+        }, 10);
+    }
+
     setInterval(function () {
         if (onlyLearnPositions) {
             learnPositions();
         } else {
 
-            if (isAlone() || !runeOnlyAlone) {
-                if (!wasAlone) {
-                    wasAlone = true;
-                    console.log("[" + new Date().toLocaleTimeString() + "] playing for you again!")
+            if (!isDoingAnything()) {
+                if (isManaFull()) {
+                    makeRune();
                 }
-
-                if (!isDoingAnything()) {
-                    if (isManaFull()) {
-                        makeRune();
-                    }
-                    else {
-                        if (fishingCount > 10) {
-                            if (eatFoodCount > 5) {
-                                doTheHalemShake();
-                                eatFoodCount = 0;
-                            } else {
-                                eatFood();
-                            }
-
-                            fishingCount = 0;
-                        } else {
-                            doFish();
-                        }
+                else {
+                    if (eatFoodCount > 10) {
+                        doTheHalemShake();
+                        eatFoodCount = 0;
+                    } else {
+                        eatFood();
                     }
                 }
-
-            } else {
-                if (wasAlone) {
-                    wasAlone = false;
-                    console.log("[" + new Date().toLocaleTimeString() + "] not alone!")
-                }
-                playPlayerOnScreenSound();
             }
         }
 
-    }, 1000);
+    }, 5000);
 }
 
 function getAutomaticPositions(callback) {
-    //getBlankRunePosition(function () {
-    //getEmptyContainerPosition(function () {
-    //getLeftHandPosition(function () {
-        getBattlePosition(function() {
-            getFishingStartPosition(function () {
-                getFishingEndPosition(function () {
-                    getFishingRodPosition(function () {
-                        getFoodPosition(function () {
-                            getPlayerPosition(function () {
-                                getManaColor(function () {
-                                    getFullManaPosition(function () {
-                                        console.log("jogando pra você!");
-                                        callback();
-                                    });
-                                });
-                            });
-                        });
-                    });
+    getBattlePosition(function () {
+        getPlayerPosition(function () {
+            getFoodPosition(function () {
+                getFullManaPosition(function () {
+                    console.log(new Date().toLocaleString() + " jogando pra você!");
+                    callback();
                 });
             });
         });
-    //});
-    //});
-    //});
+    });
 }
 
 function getBlankRunePosition(callback, lastPos) {
@@ -264,27 +204,6 @@ function getFullManaPosition(callback, lastPos) {
     }, 3000);
 }
 
-function getManaColor(callback, lastPos) {
-    if (lastPos == null) {
-        console.log("posicione o mouse na cor de mana azul.");
-    } else {
-        console.log("continue parado no local de mana azul...");
-    }
-    setTimeout(function () {
-        var mouse = robot.getMousePos();
-        var color = robot.getPixelColor(mouse.x, mouse.y);
-
-        if (lastPos == null || lastPos.x != mouse.x || lastPos.y != mouse.y) {
-            getManaColor(callback, mouse);
-        } else {
-            manaColor = color;
-
-            console.log("cor da mana confirmada: " + color);
-            callback();
-        }
-    }, 3000);
-}
-
 function getEmptyContainerPosition(callback, lastPos) {
     if (lastPos == null) {
         console.log("posicione o mouse no local vazio para guardar runas.");
@@ -302,6 +221,48 @@ function getEmptyContainerPosition(callback, lastPos) {
             firstBackpackPos = mouse;
 
             console.log("local vazio confirmado em: x " + mouse.x + ", y " + mouse.y);
+            callback();
+        }
+    }, 3000);
+}
+
+function getLogoutConfirmPosition(callback, lastPos) {
+    if (lastPos == null) {
+        console.log("posicione o mouse no local de LogoutConfirm.");
+    } else {
+        console.log("continue parado no local de LogoutConfirm...");
+    }
+
+    setTimeout(function () {
+        var mouse = robot.getMousePos();
+
+        if (lastPos == null || lastPos.x != mouse.x || lastPos.y != mouse.y) {
+            getLogoutConfirmPosition(callback, mouse);
+        } else {
+            logoutConfirmPosition = mouse;
+
+            console.log("local de LogoutConfirm confirmado em: x " + mouse.x + ", y " + mouse.y);
+            callback();
+        }
+    }, 3000);
+}
+
+function getLogoutPosition(callback, lastPos) {
+    if (lastPos == null) {
+        console.log("posicione o mouse no local de Logout.");
+    } else {
+        console.log("continue parado no local de Logout...");
+    }
+
+    setTimeout(function () {
+        var mouse = robot.getMousePos();
+
+        if (lastPos == null || lastPos.x != mouse.x || lastPos.y != mouse.y) {
+            getLogoutPosition(callback, mouse);
+        } else {
+            logoutPosition = mouse;
+
+            console.log("local de Logout confirmado em: x " + mouse.x + ", y " + mouse.y);
             callback();
         }
     }, 3000);
@@ -330,26 +291,31 @@ function getFoodPosition(callback, lastPos) {
 }
 
 function getBattlePosition(callback, lastPos) {
-    if (lastPos == null) {
-        console.log("posicione o mouse no local de battle.");
-    } else {
-        console.log("continue parado no local de battle...");
-    }
+    console.log("!!!!O BATTLE DEVE ESTAR NO CANTO SUPERIOR DIREITO!!!!!!")
+    callback();
+    // if (lastPos == null) {
+    //     console.log("posicione o mouse no centro das Espadas do battle.");
+    // } else {
+    //     console.log("continue parado no local do centro das Espadas do battle...");
+    // }
 
-    setTimeout(function () {
-        var mouse = robot.getMousePos();
-        var color = robot.getPixelColor(mouse.x, mouse.y);
+    // setTimeout(function () {
+    //     var mouse = robot.getMousePos();
+    //     var color = robot.getPixelColor(mouse.x, mouse.y);
 
-        if (lastPos == null || lastPos.x != mouse.x || lastPos.y != mouse.y) {
-            getBattlePosition(callback, mouse);
-        } else {
-            battlePos = mouse;
-            emptyBattleColor = color;
+    //     if (lastPos == null || lastPos.x != mouse.x || lastPos.y != mouse.y) {
+    //         getBattlePosition(callback, mouse);
+    //     } else {
+    //         mouse.y = mouse.y + 50;
+    //         color = robot.getPixelColor(mouse.x, mouse.y);
 
-            console.log("local de battle confirmado em: x " + mouse.x + ", y " + mouse.y);
-            callback();
-        }
-    }, 3000);
+    //         battlePos = mouse;
+    //         emptyBattleColor = color;
+
+    //         console.log("local do battle em: x " + mouse.x + ", y " + mouse.y);
+    //         callback();
+    //     }
+    // }, 3000);
 }
 
 function getFishingStartPosition(callback, lastPos) {
@@ -462,7 +428,26 @@ function playPlayerOnScreenSound() {
 }
 
 function isDoingAnything() {
-    return isMakingRune || isFishing || isEating || isShaking;
+    return isMakingRune || isFishing || isEating || isShaking || isLoggingOut;
+}
+
+var isLoggingOut = false;
+function doLogout() {
+    isLoggingOut = true;
+    console.log(new Date().toLocaleString() +  " logging out...");
+    newRobot
+        .press("ctrl")
+        .go(function () {
+            setTimeout(function () {
+                newRobot
+                    .press("l")
+                    .go(function () {
+                         isLoggingOut = false;
+                        console.log(new Date().toLocaleString() +  " logged out!");
+                        process.exit();
+                    });
+            }, 10);
+        });
 }
 
 var isEating = false;
@@ -470,7 +455,7 @@ var eatFoodCount = 0;
 function eatFood() {
     if (!isDoingAnything()) {
         isEating = true;
-        console.log("eating...");
+        //console.log("eating...");
         robot.moveMouse(foodPos.x, foodPos.y);
         robot.mouseClick("right");
         setTimeout(function () {
@@ -486,10 +471,10 @@ function doTheHalemShake() {
         isShaking = true;
         console.log("shaking...");
 
-        robot.moveMouse(playerPosition.x, playerPosition.y - 50);
+        robot.moveMouse(playerPosition.x, playerPosition.y + 50);
         robot.mouseClick("left");
         setTimeout(function () {
-            robot.moveMouse(playerPosition.x, playerPosition.y + 50);
+            robot.moveMouse(playerPosition.x, playerPosition.y - 50);
             robot.mouseClick("left");
             setTimeout(function () {
                 isShaking = false;
@@ -533,14 +518,18 @@ function doFish() {
 var isMakingRune = false;
 function makeRune() {
     if (!isDoingAnything()) {
-        console.log("make rune!!!")
+        console.log(new Date().toLocaleString() + " make rune!");
         isMakingRune = true;
 
-        if (currentRunes < maxRunes) {
-
+        if (alternateExevoPan) {
+            countUntilExevoPan += 1;
+            console.log("countUntilExevoPan ", countUntilExevoPan, " maxCountUntilExevoPan ", maxCountUntilExevoPan);
+        }
+        if (currentRunes < maxRunes && (!alternateExevoPan || countUntilExevoPan % maxCountUntilExevoPan != 0)) {
+            
             //moveFromSecondBackpackToLeftHand();
             setTimeout(function () {
-                console.log("do adori gran");
+                console.log("do adura vita");
 
                 newRobot
                     .press("enter")
@@ -554,14 +543,16 @@ function makeRune() {
                                 .go(function () {
                                     isMakingRune = false;
                                     currentRunes += 1;
+                                    console.log("currentRunes " + currentRunes + " | maxRunes " + maxRunes);
                                 });
                         }, 1000);
                     });
             }, 1000);
 
         } else {
+            countUntilExevoPan = 0;
             setTimeout(function () {
-                console.log("do exura gran");
+                console.log("do exevo pan");
 
                 newRobot
                     .press("enter")
@@ -569,7 +560,7 @@ function makeRune() {
                     .go(function () {
                         setTimeout(function () {
                             newRobot
-                                .typeString("exura gran")
+                                .typeString("exevo pan")
                                 .press("enter")
                                 .release("enter")
                                 .go(function () {
@@ -590,13 +581,15 @@ function hasBlankRune() {
 
 function isManaFull() {
     var currentManaColor = robot.getPixelColor(posFullMana.x, posFullMana.y);
-    console.log("mana fuul? ", manaColor == currentManaColor);
+//    console.log("mana full? ", manaColor == currentManaColor);
     return manaColor == currentManaColor;
 }
 
 function isAlone() {
     var battleColor = robot.getPixelColor(battlePos.x, battlePos.y);
-    return battleColor == emptyBattleColor;
+    var _isAlone = battleColor == emptyBattleColor;
+    //    console.log("_isAlone ", _isAlone);
+    return _isAlone;
 }
 
 function moveFromLeftHandToFirstBackpack() { //take the HMM
